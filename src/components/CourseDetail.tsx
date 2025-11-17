@@ -97,6 +97,17 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
 
   if (!course) return null;
 
+  if (activeLesson) {
+    return (
+      <LessonPlayer
+        lesson={activeLesson}
+        courseTitle={course.title}
+        reviews={reviews}
+        onClose={() => setActiveLesson(null)}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
       <div className="relative">
@@ -117,20 +128,20 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
 
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="max-w-7xl mx-auto">
-              <div className="flex items-start space-x-6">
+              <div className="flex flex-col md:flex-row items-start gap-6">
                 <img
                   src={course.instructor_image || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200'}
                   alt={course.instructor_name}
-                  className="w-24 h-24 rounded-full border-4 border-white shadow-xl"
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-xl"
                 />
                 <div className="flex-1">
-                  <h1 className="text-4xl font-bold text-white mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                     {course.title}
                   </h1>
-                  <p className="text-xl text-gray-200 mb-4">
+                  <p className="text-lg md:text-xl text-gray-200 mb-4">
                     {course.instructor_name} bilan
                   </p>
-                  <div className="flex items-center space-x-6 text-white">
+                  <div className="flex flex-wrap items-center gap-4 text-white text-sm md:text-base">
                     <div className="flex items-center space-x-2">
                       <Clock size={20} />
                       <span>{course.duration_weeks} hafta</span>
@@ -331,14 +342,6 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
           </div>
         </div>
       </div>
-      {activeLesson && course && (
-        <LessonPlayer
-          lesson={activeLesson}
-          courseTitle={course.title}
-          reviews={reviews}
-          onClose={() => setActiveLesson(null)}
-        />
-      )}
     </div>
   );
 }
