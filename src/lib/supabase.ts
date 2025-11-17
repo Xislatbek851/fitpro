@@ -1,9 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import { createMockSupabaseClient } from './mockSupabase';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = (supabaseUrl && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createMockSupabaseClient();
 
 export type Category = {
   id: string;
@@ -40,6 +43,17 @@ export type Lesson = {
   duration_minutes: number;
   order_index: number;
   is_free: boolean;
+  created_at: string;
+};
+
+export type CourseReview = {
+  id: string;
+  course_id: string;
+  reviewer_name: string;
+  reviewer_title: string;
+  rating: number;
+  comment: string;
+  avatar_url: string;
   created_at: string;
 };
 

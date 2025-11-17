@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase, type Course, type Lesson } from '../lib/supabase';
+import { supabase, type Course, type Lesson, type CourseReview } from '../lib/supabase';
+import LessonPlayer from './LessonPlayer';
 import {
   X,
   Clock,
@@ -22,6 +23,8 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [enrolled, setEnrolled] = useState(false);
+  const [reviews, setReviews] = useState<CourseReview[]>([]);
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,10 +55,20 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
       setEnrolled(!!enrollmentData);
     }
 
+    const { data: reviewsData } = await supabase
+      .from('course_reviews')
+      .select('*')
+      .eq('course_id', courseId)
+      .order('created_at', { ascending: false });
+
     if (courseData) setCourse(courseData);
     if (lessonsData) setLessons(lessonsData);
+    if (reviewsData) setReviews(reviewsData);
     setLoading(false);
   }
+
+  const averageRating =
+    reviews.reduce((sum, review) => sum + review.rating, 0) / (reviews.length || 1);
 
   const handleEnroll = async () => {
     if (!user) {
@@ -162,37 +175,101 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Darslar ({lessons.length})
                 </h2>
-                <div className="space-y-3">
-                  {lessons.map((lesson, index) => (
-                    <div
-                      key={lesson.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold">
-                          {index + 1}
+                <div className="space-y-4">
+                  {lessons.map((lesson, index) => {
+                    const canPlay = lesson.is_free || enrolled;
+                    return (
+                      <div
+                        key={lesson.id}
+                        className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition group"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">
+                                {lesson.title}
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                {lesson.duration_minutes} daqiqa
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => {
+                                if (!canPlay) {
+                                  alert('Bu dars faqat kursga yozilganlar uchun ochiq');
+                                  return;
+                                }
+                                setActiveLesson(lesson);
+                              }}
+                              className={`p-3 rounded-full border transition ${
+                                canPlay
+                                  ? 'border-orange-500 text-orange-600 hover:bg-orange-50'
+                                  : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                              }`}
+                              type="button"
+                              aria-label={canPlay ? 'Videoni ochish' : 'Yopiq dars'}
+                              disabled={!canPlay}
+                            >
+                              {canPlay ? <PlayCircle size={20} /> : <Lock size={18} />}
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">
-                            {lesson.title}
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            {lesson.duration_minutes} daqiqa
-                          </p>
-                        </div>
+                        <p className="text-sm text-gray-600 mt-3">
+                          {lesson.description}
+                        </p>
                       </div>
-                      <div>
-                        {lesson.is_free ? (
-                          <PlayCircle className="text-orange-500" size={24} />
-                        ) : enrolled ? (
-                          <CheckCircle className="text-green-500" size={24} />
-                        ) : (
-                          <Lock className="text-gray-400" size={24} />
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Sharhlar</h2>
+                  <div className="flex items-center space-x-2 text-orange-500 font-semibold">
+                    <Star size={20} fill="currentColor" />
+                    <span>
+                      {averageRating.toFixed(1)} / 5 ({reviews.length} ta)
+                    </span>
+                  </div>
+                </div>
+                {reviews.length === 0 ? (
+                  <p className="text-gray-500">Hali sharhlar qo\'shilmagan.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                        <div className="flex items-center space-x-4">
+                          <img
+                            src={review.avatar_url}
+                            alt={review.reviewer_name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {review.reviewer_name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {review.reviewer_title}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-3 text-orange-500">
+                          <Star size={16} fill="currentColor" />
+                          <span className="font-semibold">{review.rating}</span>
+                        </div>
+                        <p className="text-gray-700 mt-2">
+                          {review.comment}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -254,6 +331,14 @@ export default function CourseDetail({ courseId, onClose, user }: CourseDetailPr
           </div>
         </div>
       </div>
+      {activeLesson && course && (
+        <LessonPlayer
+          lesson={activeLesson}
+          courseTitle={course.title}
+          reviews={reviews}
+          onClose={() => setActiveLesson(null)}
+        />
+      )}
     </div>
   );
 }
